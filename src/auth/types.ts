@@ -1,15 +1,11 @@
 export type AuthUser = {
   id: string;
   email: string;
+  username: string;
 };
 
-export type TokenSessionResponse = {
+export type SessionResponse = {
+  authenticated: true;
   user: AuthUser;
-  access: string;
-  refresh: string;
-};
-
-export type RefreshResponse = {
-  access: string;
-  refresh?: string;
+  csrfToken: string;
 };

@@ -13,20 +13,17 @@ npm run dev -- --host 127.0.0.1
 
 Open `http://127.0.0.1:5173`.
 
-Authentication uses Majom ID through the Django backend. The browser receives
-a short-lived one-time code, exchanges it for application JWTs, and uses Bearer
-authentication for the Notes API.
+Authentication uses the same Majom ID session flow as Majom Canvas. The Django
+backend completes OIDC, stores the authenticated user in an HttpOnly session
+cookie, and exposes the session state through `/auth/sso/session/`. Mutating API
+requests include the CSRF token returned by that endpoint.
 
 ## Production
 
 The production frontend is configured for `https://notes.gomajom.com/` and the
 API at `https://mxll.pythonanywhere.com`.
 
-1. Deploy the accompanying `platform-django` changes and run:
-
-   ```powershell
-   python manage.py migrate
-   ```
+1. Deploy the accompanying `platform-django` changes.
 
 2. Set this backend environment value exactly (the redirect allowlist does not
    use wildcard matching):
@@ -34,6 +31,10 @@ API at `https://mxll.pythonanywhere.com`.
    ```dotenv
    SSO_ALLOWED_FRONTEND_URLS=https://gomajom.com/,https://notes.gomajom.com/
    ```
+
+   Cross-site sessions also require secure `SameSite=None` session and CSRF
+   cookies, plus `https://notes.gomajom.com` in the CORS and CSRF trusted-origin
+   settings.
 
 3. Push this repository to GitHub with `main` as the default branch and enable
    GitHub Pages with **GitHub Actions** as its source. The included workflow
