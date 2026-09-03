@@ -227,12 +227,13 @@ button:disabled {
 
 .account__trigger {
   display: flex;
+  width: 42px;
   min-height: 42px;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
   border: 0;
   border-radius: 13px;
-  padding: 4px 9px 4px 5px;
+  padding: 5px;
   background: transparent;
   cursor: pointer;
   color: var(--text-secondary);
@@ -262,15 +263,6 @@ button:disabled {
   height: 38px;
   flex-basis: 38px;
   font-size: 15px;
-}
-
-.account__email {
-  max-width: 220px;
-  overflow: hidden;
-  font-size: 13px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .account__popover {
@@ -890,11 +882,6 @@ button:disabled {
   .account__trigger {
     min-height: 44px;
     padding: 5px;
-  }
-
-  .account__email,
-  .account__trigger [data-account-chevron] {
-    display: none;
   }
 
   .workspace {

@@ -89,10 +89,8 @@ export class NotesWorkspace {
             <span class="brand__name">Majom Notes</span>
           </div>
           <div class="account">
-            <button class="account__trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+            <button class="account__trigger" type="button" aria-label="Меню акаунта" aria-haspopup="menu" aria-expanded="false">
               <span class="account__avatar"></span>
-              <span class="account__email"></span>
-              <span data-account-chevron></span>
             </button>
             <div class="account__popover" role="menu" hidden>
               <div class="account__identity">
@@ -229,7 +227,6 @@ export class NotesWorkspace {
 
   private decorateStaticElements(): void {
     this.required('[data-brand-icon]').appendChild(createIcon('document', 19));
-    this.required('[data-account-chevron]').appendChild(createIcon('chevron', 15));
     this.required('[data-search-icon]').appendChild(createIcon('search', 17));
     this.required('[data-mobile-create-icon]').appendChild(createIcon('plus', 18));
     this.required('[data-empty-icon]').appendChild(createIcon('document', 24));
@@ -241,7 +238,6 @@ export class NotesWorkspace {
     this.root.querySelectorAll<HTMLElement>('.account__avatar').forEach((avatar) => {
       avatar.textContent = initial;
     });
-    this.required('.account__email').textContent = this.options.user.email;
     this.required('.account__identity strong').textContent = this.options.user.email;
   }
 
