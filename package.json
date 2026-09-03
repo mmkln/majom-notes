@@ -7,12 +7,15 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm test && npm run build",
+    "deploy": "gh-pages -d dist --nojekyll -m \"Deploy site\""
   },
   "dependencies": {
     "@majom/inkstone": "file:packages/inkstone"
   },
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "jsdom": "^29.0.1",
     "typescript": "^5.0.0",
     "vite": "^7.1.7",
