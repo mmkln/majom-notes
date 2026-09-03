@@ -32,7 +32,6 @@ ${T}`,A=m(s,n,B),S=n.start+h.length+1+v.length;return{value:A,selection:{start:S
               <span class="brand__mark" data-brand-icon></span>
               <span class="brand__name">Majom Notes</span>
             </div>
-            <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-controls="notes-sidebar"></button>
           </header>
 
           <button class="sidebar-create" type="button" data-create>
@@ -69,6 +68,7 @@ ${T}`,A=m(s,n,B),S=n.start+h.length+1+v.length;return{value:A,selection:{start:S
         <section class="note-stage">
           <header class="editor-toolbar">
             <div class="editor-toolbar__meta">
+              <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-controls="notes-sidebar"></button>
               <button class="icon-button mobile-back" type="button" aria-label="Назад до списку"></button>
               <span class="updated-label"></span>
               <span class="save-label" aria-live="polite"></span>
