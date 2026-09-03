@@ -1,6 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="18" fill="#7055c5"/>
-  <path d="M19 16h20l7 7v25H19z" fill="#fff" opacity=".96"/>
-  <path d="M39 16v9h8" fill="none" stroke="#7055c5" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M26 32h14M26 39h12" stroke="#7055c5" stroke-width="3" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="page" x1="25" y1="24" x2="103" y2="105" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B8A7FF"/>
+      <stop offset="0.48" stop-color="#9278FF"/>
+      <stop offset="1" stop-color="#7C5CFF"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="82" y1="22" x2="103" y2="51" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F1FF"/>
+      <stop offset="1" stop-color="#CFC4FF"/>
+    </linearGradient>
+    <linearGradient id="leg" x1="70" y1="103" x2="88" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EDE9FF"/>
+      <stop offset="1" stop-color="#C9BDFF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#33256D" flood-opacity="0.16"/>
+    </filter>
+    <mask id="cutout">
+      <path fill="#fff" d="M35 21h47l30 30v42c0 10-8 18-18 18H35c-10 0-18-8-18-18V39c0-10 8-18 18-18Z"/>
+      <path fill="#000" d="M36 111V68c0-3.2 3.8-4.9 6.2-2.8l20.2 17.7 20.2-17.7c2.4-2.1 6.2-.4 6.2 2.8v43H73V89.8L62.4 99 51.8 89.8V111H36Z"/>
+    </mask>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="29" fill="#fff"/>
+  <g filter="url(#shadow)">
+    <path fill="url(#page)" mask="url(#cutout)" d="M35 21h47l30 30v42c0 10-8 18-18 18H35c-10 0-18-8-18-18V39c0-10 8-18 18-18Z"/>
+    <path fill="url(#fold)" d="M82 21v15c0 8.3 6.7 15 15 15h15L82 21Z"/>
+    <path fill="url(#leg)" d="m88.8 68-15.8 21.8V111h15.8V68Z"/>
+  </g>
 </svg>
