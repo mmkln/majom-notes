@@ -66,10 +66,14 @@ function applyLineStyles(
   }
 
   if (block.type === 'thematic_break') {
-    line.style.paddingTop = '0.4rem';
-    line.style.paddingBottom = '0.4rem';
-    line.style.display = 'flex';
-    line.style.alignItems = 'center';
+    if (profile === 'preview') {
+      line.style.paddingTop = '0.4rem';
+      line.style.paddingBottom = '0.4rem';
+      line.style.display = 'flex';
+      line.style.alignItems = 'center';
+    } else {
+      line.style.position = 'relative';
+    }
     return;
   }
 
@@ -121,6 +125,9 @@ function renderInlineSegments(
     }
 
     if (segment.type === 'strong') {
+      if (profile === 'editor') {
+        appendHiddenSyntaxSpan(host, '**');
+      }
       const strong = document.createElement('strong');
       strong.className = 'inkstone-inline inkstone-inline--strong';
       strong.textContent = segment.text;
@@ -128,10 +135,16 @@ function renderInlineSegments(
       strong.style.fontWeight = profile === 'preview' ? '700' : 'inherit';
       strong.style.textDecoration = 'none';
       host.appendChild(strong);
+      if (profile === 'editor') {
+        appendHiddenSyntaxSpan(host, '**');
+      }
       return;
     }
 
     if (segment.type === 'emphasis') {
+      if (profile === 'editor') {
+        appendHiddenSyntaxSpan(host, segment.marker);
+      }
       const em = document.createElement('em');
       em.className = 'inkstone-inline inkstone-inline--emphasis';
       em.textContent = segment.text;
@@ -139,10 +152,16 @@ function renderInlineSegments(
       em.style.fontStyle = profile === 'preview' ? 'italic' : 'normal';
       em.style.textDecoration = 'none';
       host.appendChild(em);
+      if (profile === 'editor') {
+        appendHiddenSyntaxSpan(host, segment.marker);
+      }
       return;
     }
 
     if (segment.type === 'code') {
+      if (profile === 'editor') {
+        appendHiddenSyntaxSpan(host, '`');
+      }
       const code = document.createElement('code');
       code.className = 'inkstone-inline inkstone-inline--code';
       code.textContent = segment.text;
@@ -154,9 +173,15 @@ function renderInlineSegments(
         code.style.borderRadius = '0.4rem';
       }
       host.appendChild(code);
+      if (profile === 'editor') {
+        appendHiddenSyntaxSpan(host, '`');
+      }
       return;
     }
 
+    if (profile === 'editor') {
+      appendHiddenSyntaxSpan(host, '[');
+    }
     const link = document.createElement('span');
     link.className = 'inkstone-inline inkstone-inline--link';
     link.textContent = segment.label;
@@ -165,6 +190,9 @@ function renderInlineSegments(
     link.style.textDecorationColor = 'rgba(29, 78, 216, 0.28)';
     link.dataset.inkstoneHref = segment.href;
     host.appendChild(link);
+    if (profile === 'editor') {
+      appendHiddenSyntaxSpan(host, `](${segment.href})`);
+    }
   });
 }
 
@@ -197,11 +225,58 @@ function createVisibleListMarker(block: InkstoneMarkdownBlock): HTMLElement {
 function appendHiddenSyntaxSpan(host: HTMLElement, text: string): HTMLSpanElement {
   const span = document.createElement('span');
   span.textContent = text;
+  span.dataset.inkstoneRole = 'syntax';
   span.setAttribute('aria-hidden', 'true');
   span.style.visibility = 'hidden';
-  span.style.whiteSpace = 'pre';
+  span.style.whiteSpace = 'pre-wrap';
   host.appendChild(span);
   return span;
+}
+
+function appendEditorBlockPrefix(
+  line: HTMLElement,
+  block: InkstoneMarkdownBlock
+): void {
+  const prefixLength = Math.max(0, block.rawText.length - block.text.length);
+  if (prefixLength > 0) {
+    appendHiddenSyntaxSpan(line, block.rawText.slice(0, prefixLength));
+  }
+}
+
+function appendEditorCodeFence(
+  line: HTMLElement,
+  block: InkstoneMarkdownBlock
+): void {
+  const openingLineEnd = block.rawText.indexOf('\n');
+  if (openingLineEnd === -1) {
+    appendHiddenSyntaxSpan(line, block.rawText);
+    return;
+  }
+
+  const contentStart = openingLineEnd + 1;
+  appendHiddenSyntaxSpan(line, block.rawText.slice(0, contentStart));
+  const closingLineStart = block.rawText.lastIndexOf('\n');
+  const hasClosingFence =
+    closingLineStart >= openingLineEnd &&
+    /^```/.test(block.rawText.slice(closingLineStart + 1));
+  const emptyFence = hasClosingFence && closingLineStart === openingLineEnd;
+  const contentEnd = hasClosingFence
+    ? emptyFence
+      ? contentStart
+      : closingLineStart
+    : block.rawText.length;
+
+  const code = document.createElement('span');
+  code.className = 'inkstone-code-fence-content';
+  code.textContent = block.rawText.slice(contentStart, contentEnd);
+  line.appendChild(code);
+
+  if (hasClosingFence) {
+    appendHiddenSyntaxSpan(
+      line,
+      block.rawText.slice(emptyFence ? contentStart : closingLineStart),
+    );
+  }
 }
 
 function createInlineSyntaxSlot(role: 'list-gutter' | 'task-gutter', rawSyntax: string): HTMLSpanElement {
@@ -364,11 +439,20 @@ export class InkstoneMirrorRenderer {
       divider.style.height = '1px';
       divider.style.width = '100%';
       divider.style.backgroundColor = 'rgba(203, 213, 225, 0.6)';
+      if (this.profile === 'editor') {
+        appendHiddenSyntaxSpan(line, block.rawText);
+        divider.style.position = 'absolute';
+        divider.style.insetInline = '0';
+        divider.style.top = '50%';
+      }
       line.appendChild(divider);
       return;
     }
 
     if (block.type === 'heading') {
+      if (this.profile === 'editor') {
+        appendEditorBlockPrefix(line, block);
+      }
       renderInlineSegments(line, block.segments, this.profile);
       return;
     }
@@ -472,11 +556,19 @@ export class InkstoneMirrorRenderer {
     }
 
     if (block.type === 'blockquote') {
+      if (this.profile === 'editor') {
+        appendEditorBlockPrefix(line, block);
+      }
       renderInlineSegments(line, block.segments, this.profile);
       return;
     }
 
     if (block.type === 'code_fence') {
+      if (this.profile === 'editor') {
+        appendEditorCodeFence(line, block);
+        return;
+      }
+
       const languageBadge = document.createElement('div');
       languageBadge.textContent = block.language ? block.language : 'code';
       languageBadge.style.fontSize = '0.72em';

@@ -84,6 +84,7 @@ describe('NotesWorkspace Markdown toolbar', () => {
 
     expect(root.querySelector('.sidebar-brand')).not.toBeNull();
     expect(root.querySelector('.note-stage')).not.toBeNull();
+    expect(root.querySelector('.editor-document')).not.toBeNull();
     expect(root.querySelector('.topbar')).toBeNull();
     expect(root.querySelector('.sidebar-create')?.textContent).toContain(
       'Нова нотатка',

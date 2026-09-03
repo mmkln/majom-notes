@@ -177,22 +177,24 @@ export class NotesWorkspace {
 
             <div class="editor-content" hidden>
               <div class="editor-scroll">
-                <div class="markdown-toolbar" data-markdown-toolbar role="toolbar" aria-label="Форматування Markdown">
-                  <button type="button" data-md-command="heading" data-level="2" aria-label="Заголовок другого рівня" title="Заголовок другого рівня">H2</button>
-                  <button type="button" data-md-command="bold" aria-label="Жирний текст" title="Жирний текст (Ctrl+B)"><strong>B</strong></button>
-                  <button type="button" data-md-command="italic" aria-label="Курсив" title="Курсив (Ctrl+I)"><em>I</em></button>
-                  <button type="button" data-md-command="inline-code" aria-label="Код у рядку" title="Код у рядку">&lt;/&gt;</button>
-                  <span class="markdown-toolbar__separator" aria-hidden="true"></span>
-                  <button type="button" data-md-command="bullet-list" aria-label="Маркований список" title="Маркований список">•</button>
-                  <button type="button" data-md-command="ordered-list" aria-label="Нумерований список" title="Нумерований список">1.</button>
-                  <button type="button" data-md-command="task-list" aria-label="Список завдань" title="Список завдань">☑</button>
-                  <button type="button" data-md-command="blockquote" aria-label="Цитата" title="Цитата">❯</button>
-                  <span class="markdown-toolbar__separator" aria-hidden="true"></span>
-                  <button type="button" data-md-command="link" aria-label="Посилання" title="Посилання (Ctrl+K)">↗</button>
-                  <button type="button" data-md-command="code-block" aria-label="Блок коду" title="Блок коду">{ }</button>
+                <div class="editor-document">
+                  <div class="markdown-toolbar" data-markdown-toolbar role="toolbar" aria-label="Форматування Markdown">
+                    <button type="button" data-md-command="heading" data-level="2" aria-label="Заголовок другого рівня" title="Заголовок другого рівня">H2</button>
+                    <button type="button" data-md-command="bold" aria-label="Жирний текст" title="Жирний текст (Ctrl+B)"><strong>B</strong></button>
+                    <button type="button" data-md-command="italic" aria-label="Курсив" title="Курсив (Ctrl+I)"><em>I</em></button>
+                    <button type="button" data-md-command="inline-code" aria-label="Код у рядку" title="Код у рядку">&lt;/&gt;</button>
+                    <span class="markdown-toolbar__separator" aria-hidden="true"></span>
+                    <button type="button" data-md-command="bullet-list" aria-label="Маркований список" title="Маркований список">•</button>
+                    <button type="button" data-md-command="ordered-list" aria-label="Нумерований список" title="Нумерований список">1.</button>
+                    <button type="button" data-md-command="task-list" aria-label="Список завдань" title="Список завдань">☑</button>
+                    <button type="button" data-md-command="blockquote" aria-label="Цитата" title="Цитата">❯</button>
+                    <span class="markdown-toolbar__separator" aria-hidden="true"></span>
+                    <button type="button" data-md-command="link" aria-label="Посилання" title="Посилання (Ctrl+K)">↗</button>
+                    <button type="button" data-md-command="code-block" aria-label="Блок коду" title="Блок коду">{ }</button>
+                  </div>
+                  <input class="title-input" type="text" placeholder="Назва нотатки" maxlength="200" />
+                  <div class="body-host"></div>
                 </div>
-                <input class="title-input" type="text" placeholder="Назва нотатки" maxlength="200" />
-                <div class="body-host"></div>
               </div>
             </div>
           </main>

@@ -12,7 +12,7 @@ export type InkstoneMarkdownBlockType =
 export type InkstoneMarkdownInlineSegment =
   | { type: 'text'; text: string }
   | { type: 'strong'; text: string }
-  | { type: 'emphasis'; text: string }
+  | { type: 'emphasis'; text: string; marker: '*' | '_' }
   | { type: 'code'; text: string }
   | { type: 'link'; text: string; label: string; href: string };
 
@@ -98,12 +98,13 @@ function parseInlineSegments(text: string): InkstoneMarkdownInlineSegment[] {
     }
 
     if (text[cursor] === '*' || text[cursor] === '_') {
-      const token = text[cursor];
+      const token = text[cursor] as '*' | '_';
       const end = text.indexOf(token, cursor + 1);
       if (end > cursor + 1) {
         segments.push({
           type: 'emphasis',
           text: text.slice(cursor + 1, end),
+          marker: token,
         });
         cursor = end + 1;
         continue;

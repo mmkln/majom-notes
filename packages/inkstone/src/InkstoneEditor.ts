@@ -58,6 +58,7 @@ class InkstoneEditor implements InkstoneEditorHandle {
   private readonly mirror: HTMLDivElement;
   private readonly mirrorContent: HTMLDivElement;
   private readonly mirrorRenderer: InkstoneMirrorRenderer;
+  private readonly resizeObserver: ResizeObserver | null;
   private documentSnapshot: InkstoneMarkdownDocument;
   private activeBlockLineStart: number | null = null;
 
@@ -117,6 +118,7 @@ class InkstoneEditor implements InkstoneEditorHandle {
     this.input.style.height = '100%';
     this.input.style.background = 'transparent';
     this.input.style.color = 'transparent';
+    this.input.style.webkitTextFillColor = 'transparent';
     this.input.style.caretColor = '#0f172a';
     this.input.style.zIndex = '1';
     this.input.style.whiteSpace = 'pre-wrap';
@@ -158,6 +160,13 @@ class InkstoneEditor implements InkstoneEditorHandle {
       this.handleMirrorClick(event);
     });
 
+    this.resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => {
+            this.syncMirrorViewport();
+          });
+
     this.surface.append(this.mirror, this.input);
     this.element.appendChild(this.surface);
     this.renderMirror();
@@ -166,9 +175,12 @@ class InkstoneEditor implements InkstoneEditorHandle {
 
   public mount(host: HTMLElement): void {
     host.replaceChildren(this.element);
+    this.resizeObserver?.observe(this.input);
+    this.syncMirrorViewport();
   }
 
   public destroy(): void {
+    this.resizeObserver?.disconnect();
     this.element.remove();
   }
 
@@ -428,6 +440,14 @@ class InkstoneEditor implements InkstoneEditorHandle {
     this.mirror.scrollLeft = this.input.scrollLeft;
   }
 
+  private syncMirrorViewport(): void {
+    const scrollbarWidth = Math.max(
+      0,
+      this.input.offsetWidth - this.input.clientWidth,
+    );
+    this.mirror.style.right = `${scrollbarWidth}px`;
+  }
+
   private captureInputScrollState(): { top: number; left: number } {
     return {
       top: this.input.scrollTop,
@@ -478,13 +498,21 @@ class InkstoneEditor implements InkstoneEditorHandle {
     }
 
     const scrollState = this.captureInputScrollState();
+    const selectionStart = this.input.selectionStart ?? 0;
+    const selectionEnd = this.input.selectionEnd ?? selectionStart;
+    const selectionDirection = this.input.selectionDirection;
     const nextValue = toggleTaskMarkerAtLine(
       this.input.value,
       block.lineStart,
       block.lineEnd,
       block.checked === true
     );
-    this.input.value = nextValue;
+    this.replaceInputValue(nextValue);
+    this.input.setSelectionRange(
+      selectionStart,
+      selectionEnd,
+      selectionDirection,
+    );
     this.documentSnapshot = this.engine.parse(nextValue);
     this.activeBlockLineStart = this.resolveActiveBlockLineStart();
     if (!this.patchRenderedTaskLine(block.lineStart)) {
@@ -501,6 +529,7 @@ class InkstoneEditor implements InkstoneEditorHandle {
       placeholder: this.options.placeholder,
       activeBlockLineStart: this.activeBlockLineStart,
     });
+    this.syncMirrorViewport();
     this.syncMirrorScroll();
   }
 

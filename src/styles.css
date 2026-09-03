@@ -1447,17 +1447,26 @@ body {
 }
 
 .note-stage .editor-scroll {
-  width: min(940px, 100%);
+  width: 100%;
+  height: 100%;
   min-height: 0;
   flex: 1;
-  align-self: center;
-  overflow-y: auto;
-  padding: 26px 56px 80px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.note-stage .editor-document {
+  display: grid;
+  width: min(1120px, 100%);
+  height: 100%;
+  min-height: 0;
+  margin-inline: auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding: 26px 56px;
 }
 
 .note-stage .markdown-toolbar {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 5;
   width: max-content;
   max-width: 100%;
@@ -1476,13 +1485,15 @@ body {
 }
 
 .note-stage .body-host {
-  min-height: 420px;
+  min-width: 0;
+  min-height: 0;
   margin-top: 30px;
+  overflow: hidden;
 }
 
 .note-stage .notes-body-editor-host,
 .note-stage .notes-body-editor-input {
-  min-height: 420px;
+  min-height: 0;
 }
 
 .note-stage .notes-body-editor-input {
@@ -1624,12 +1635,15 @@ body {
 
   .note-stage .editor-scroll {
     width: 100%;
-    padding: 18px 18px max(80px, env(safe-area-inset-bottom));
+    padding: 0;
+  }
+
+  .note-stage .editor-document {
+    width: 100%;
+    padding: 18px 18px max(18px, env(safe-area-inset-bottom));
   }
 
   .note-stage .markdown-toolbar {
-    position: sticky;
-    top: 0;
     width: 100%;
     margin-bottom: 24px;
     overflow-x: auto;
