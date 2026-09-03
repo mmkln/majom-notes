@@ -31,6 +31,22 @@ function formatUpdatedAt(value: string): string {
   }).format(date);
 }
 
+function formatNoteListDate(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) {
+    return new Intl.DateTimeFormat('uk-UA', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+  return new Intl.DateTimeFormat('uk-UA', {
+    day: 'numeric',
+    month: 'short',
+  }).format(date);
+}
+
 export class NotesWorkspace {
   private readonly confirmDialog = new ConfirmDialog();
   private disposeStore: (() => void) | null = null;
@@ -59,6 +75,8 @@ export class NotesWorkspace {
   private bodyHost!: HTMLElement;
   private updatedLabel!: HTMLElement;
   private saveLabel!: HTMLElement;
+  private noteStatus!: HTMLElement;
+  private noteStatusLabel!: HTMLElement;
   private pinButton!: HTMLButtonElement;
   private archiveButton!: HTMLButtonElement;
   private deleteButton!: HTMLButtonElement;
@@ -76,61 +94,78 @@ export class NotesWorkspace {
   public mount(): void {
     this.root.innerHTML = `
       <div class="notes-shell" data-mobile-view="list">
-        <header class="topbar">
-          <div class="brand" aria-label="Majom Notes">
-            <span class="brand__mark" data-brand-icon></span>
-            <span class="brand__name">Majom Notes</span>
-          </div>
-          <div class="account">
-            <button class="account__trigger" type="button" aria-label="Меню акаунта" aria-haspopup="menu" aria-expanded="false">
-              <span class="account__avatar"></span>
+        <aside class="sidebar" aria-label="Список нотаток">
+          <header class="sidebar-brand">
+            <div class="brand" aria-label="Majom Notes">
+              <span class="brand__mark" data-brand-icon></span>
+              <span class="brand__name">Majom Notes</span>
+            </div>
+          </header>
+
+          <button class="sidebar-create" type="button" data-create>
+            <span data-create-icon></span>
+            <span>Нова нотатка</span>
+          </button>
+
+          <label class="search-field">
+            <span data-search-icon></span>
+            <input type="search" placeholder="Шукати нотатки…" autocomplete="off" />
+          </label>
+
+          <div class="note-tabs" role="tablist" aria-label="Статус нотаток">
+            <button type="button" role="tab" data-tab="active">
+              Активні <span data-active-count>0</span>
             </button>
-            <div class="account__popover" role="menu" hidden>
-              <div class="account__identity">
-                <span class="account__avatar account__avatar--large"></span>
-                <span><strong></strong><small>Majom ID</small></span>
-              </div>
-              <hr />
-              <button type="button" role="menuitem" data-switch-account>Змінити акаунт</button>
-              <button class="account__logout" type="button" role="menuitem" data-logout>Вийти</button>
-            </div>
+            <button type="button" role="tab" data-tab="archived">
+              Архів <span data-archived-count>0</span>
+            </button>
           </div>
-        </header>
 
-        <div class="workspace">
-          <aside class="sidebar" aria-label="Список нотаток">
-            <div class="sidebar__header">
-              <div>
-                <p class="eyebrow">Простір</p>
-                <h1>Нотатки</h1>
+          <div class="sidebar-list-heading">Нотатки</div>
+          <div class="list-status" aria-live="polite"></div>
+          <div class="notes-list" role="list"></div>
+
+          <div class="sidebar__footer">
+            <button class="button button--primary button--block" type="button" data-mobile-create>
+              <span data-mobile-create-icon></span>
+              Нова нотатка
+            </button>
+          </div>
+        </aside>
+
+        <section class="note-stage">
+          <header class="editor-toolbar">
+            <div class="editor-toolbar__meta">
+              <button class="icon-button mobile-back" type="button" aria-label="Назад до списку"></button>
+              <span class="updated-label"></span>
+              <span class="note-status-chip" data-note-status>
+                <span class="note-status-chip__dot"></span>
+                <span data-note-status-label>Активна нотатка</span>
+              </span>
+              <span class="save-label" aria-live="polite"></span>
+            </div>
+
+            <div class="editor-toolbar__actions">
+              <button class="icon-button pin-button" type="button"></button>
+              <button class="icon-button archive-button" type="button"></button>
+              <button class="icon-button icon-button--danger delete-button" type="button" aria-label="Видалити нотатку"></button>
+
+              <div class="account">
+                <button class="account__trigger" type="button" aria-label="Меню акаунта" aria-haspopup="menu" aria-expanded="false">
+                  <span class="account__avatar"></span>
+                </button>
+                <div class="account__popover" role="menu" hidden>
+                  <div class="account__identity">
+                    <span class="account__avatar account__avatar--large"></span>
+                    <span><strong></strong><small>Majom ID</small></span>
+                  </div>
+                  <hr />
+                  <button type="button" role="menuitem" data-switch-account>Змінити акаунт</button>
+                  <button class="account__logout" type="button" role="menuitem" data-logout>Вийти</button>
+                </div>
               </div>
-              <button class="icon-button icon-button--primary" type="button" data-create aria-label="Нова нотатка"></button>
             </div>
-
-            <label class="search-field">
-              <span data-search-icon></span>
-              <input type="search" placeholder="Шукати нотатки…" autocomplete="off" />
-            </label>
-
-            <div class="note-tabs" role="tablist" aria-label="Статус нотаток">
-              <button type="button" role="tab" data-tab="active">
-                Активні <span data-active-count>0</span>
-              </button>
-              <button type="button" role="tab" data-tab="archived">
-                Архів <span data-archived-count>0</span>
-              </button>
-            </div>
-
-            <div class="list-status" aria-live="polite"></div>
-            <div class="notes-list" role="list"></div>
-
-            <div class="sidebar__footer">
-              <button class="button button--primary button--block" type="button" data-mobile-create>
-                <span data-mobile-create-icon></span>
-                Нова нотатка
-              </button>
-            </div>
-          </aside>
+          </header>
 
           <main class="editor-pane">
             <div class="editor-empty">
@@ -141,23 +176,7 @@ export class NotesWorkspace {
             </div>
 
             <div class="editor-content" hidden>
-              <header class="editor-toolbar">
-                <div class="editor-toolbar__meta">
-                  <button class="icon-button mobile-back" type="button" aria-label="Назад до списку"></button>
-                  <div>
-                    <span class="updated-label"></span>
-                    <span class="save-label" aria-live="polite"></span>
-                  </div>
-                </div>
-                <div class="editor-toolbar__actions">
-                  <button class="icon-button pin-button" type="button"></button>
-                  <button class="icon-button archive-button" type="button"></button>
-                  <button class="icon-button icon-button--danger delete-button" type="button" aria-label="Видалити нотатку"></button>
-                </div>
-              </header>
-
               <div class="editor-scroll">
-                <input class="title-input" type="text" placeholder="Назва нотатки" maxlength="200" />
                 <div class="markdown-toolbar" data-markdown-toolbar role="toolbar" aria-label="Форматування Markdown">
                   <button type="button" data-md-command="heading" data-level="2" aria-label="Заголовок другого рівня" title="Заголовок другого рівня">H2</button>
                   <button type="button" data-md-command="bold" aria-label="Жирний текст" title="Жирний текст (Ctrl+B)"><strong>B</strong></button>
@@ -172,11 +191,12 @@ export class NotesWorkspace {
                   <button type="button" data-md-command="link" aria-label="Посилання" title="Посилання (Ctrl+K)">↗</button>
                   <button type="button" data-md-command="code-block" aria-label="Блок коду" title="Блок коду">{ }</button>
                 </div>
+                <input class="title-input" type="text" placeholder="Назва нотатки" maxlength="200" />
                 <div class="body-host"></div>
               </div>
             </div>
           </main>
-        </div>
+        </section>
 
         <button class="retry-button" type="button" hidden>Повторити завантаження</button>
         <div class="toast" role="status" aria-live="polite" hidden></div>
@@ -224,6 +244,8 @@ export class NotesWorkspace {
     this.bodyHost = this.required('.body-host');
     this.updatedLabel = this.required('.updated-label');
     this.saveLabel = this.required('.save-label');
+    this.noteStatus = this.required('[data-note-status]');
+    this.noteStatusLabel = this.required('[data-note-status-label]');
     this.pinButton = this.required('.pin-button');
     this.archiveButton = this.required('.archive-button');
     this.deleteButton = this.required('.delete-button');
@@ -235,10 +257,10 @@ export class NotesWorkspace {
 
   private decorateStaticElements(): void {
     this.required('[data-brand-icon]').appendChild(createIcon('document', 19));
+    this.required('[data-create-icon]').appendChild(createIcon('plus', 18));
     this.required('[data-search-icon]').appendChild(createIcon('search', 17));
     this.required('[data-mobile-create-icon]').appendChild(createIcon('plus', 18));
     this.required('[data-empty-icon]').appendChild(createIcon('document', 24));
-    setButtonIcon(this.createButton, 'plus', 'Нова нотатка');
     setButtonIcon(this.mobileBackButton, 'back', 'Назад до списку');
     setButtonIcon(this.deleteButton, 'trash', 'Видалити нотатку');
 
@@ -355,6 +377,11 @@ export class NotesWorkspace {
       row.setAttribute('role', 'listitem');
       row.setAttribute('aria-current', selected ? 'true' : 'false');
 
+      const marker = document.createElement('span');
+      marker.className = 'note-row__marker';
+      marker.setAttribute('aria-hidden', 'true');
+      row.appendChild(marker);
+
       const copy = document.createElement('span');
       copy.className = 'note-row__copy';
       const title = document.createElement('strong');
@@ -377,6 +404,12 @@ export class NotesWorkspace {
         row.appendChild(pinned);
       }
 
+      const date = document.createElement('time');
+      date.className = 'note-row__date';
+      date.dateTime = note.updated_at;
+      date.textContent = formatNoteListDate(note.updated_at);
+      row.appendChild(date);
+
       row.addEventListener('click', async () => {
         if (await this.store.selectNote(note.id)) {
           this.mobileView = 'editor';
@@ -389,9 +422,18 @@ export class NotesWorkspace {
 
   private renderEditor(state: Readonly<NotesState>): void {
     const note = state.currentNote;
+    const hasNote = note !== null;
     this.editorEmpty.hidden = note !== null;
     this.editorContent.hidden = note === null;
+    this.noteStatus.hidden = !hasNote;
+    this.pinButton.hidden = !hasNote;
+    this.archiveButton.hidden = !hasNote;
+    this.deleteButton.hidden = !hasNote;
+    this.createButton.disabled = state.creating;
+    this.mobileCreateButton.disabled = state.creating;
     if (!note) {
+      this.updatedLabel.textContent = '';
+      this.saveLabel.textContent = '';
       this.destroyBodyEditor();
       if (this.mobileView === 'editor') {
         this.mobileView = 'list';
@@ -406,13 +448,16 @@ export class NotesWorkspace {
     this.updatedLabel.textContent = `Оновлено ${formatUpdatedAt(note.updated_at)}`;
     this.saveLabel.textContent = this.saveStateLabel(state.saveState);
     this.saveLabel.dataset.state = state.saveState;
+    const archived = note.status === 'archived';
+    this.noteStatusLabel.textContent = archived
+      ? 'Архівна нотатка'
+      : 'Активна нотатка';
+    this.noteStatus.classList.toggle('note-status-chip--archived', archived);
 
     const disabled = state.actionPending;
     this.pinButton.disabled = disabled;
     this.archiveButton.disabled = disabled;
     this.deleteButton.disabled = disabled;
-    this.createButton.disabled = state.creating;
-    this.mobileCreateButton.disabled = state.creating;
     setButtonIcon(
       this.pinButton,
       'bookmark',

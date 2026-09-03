@@ -67,6 +67,37 @@ function createStore(updateDraft: ReturnType<typeof vi.fn>): NotesStore {
 }
 
 describe('NotesWorkspace Markdown toolbar', () => {
+  it('renders the redesigned workspace around the existing note state', () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const workspace = new NotesWorkspace(root, createStore(vi.fn()), {
+      user: {
+        id: 'user-1',
+        email: 'user@example.test',
+        username: 'user',
+      },
+      onLogout: vi.fn(async () => undefined),
+      onSwitchAccount: vi.fn(),
+    });
+
+    workspace.mount();
+
+    expect(root.querySelector('.sidebar-brand')).not.toBeNull();
+    expect(root.querySelector('.note-stage')).not.toBeNull();
+    expect(root.querySelector('.topbar')).toBeNull();
+    expect(root.querySelector('.sidebar-create')?.textContent).toContain(
+      'Нова нотатка',
+    );
+    expect(root.querySelector('[data-note-status-label]')?.textContent).toBe(
+      'Активна нотатка',
+    );
+    expect(root.querySelector('.note-row__marker')).not.toBeNull();
+    expect(root.querySelector('.note-row__date')).not.toBeNull();
+
+    workspace.destroy();
+    root.remove();
+  });
+
   it('applies a command without losing the editor selection', () => {
     const updateDraft = vi.fn();
     const root = document.createElement('div');

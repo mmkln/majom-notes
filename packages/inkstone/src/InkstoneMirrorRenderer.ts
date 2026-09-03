@@ -122,6 +122,7 @@ function renderInlineSegments(
 
     if (segment.type === 'strong') {
       const strong = document.createElement('strong');
+      strong.className = 'inkstone-inline inkstone-inline--strong';
       strong.textContent = segment.text;
       strong.style.color = '#243447';
       strong.style.fontWeight = profile === 'preview' ? '700' : 'inherit';
@@ -132,6 +133,7 @@ function renderInlineSegments(
 
     if (segment.type === 'emphasis') {
       const em = document.createElement('em');
+      em.className = 'inkstone-inline inkstone-inline--emphasis';
       em.textContent = segment.text;
       em.style.color = '#526277';
       em.style.fontStyle = profile === 'preview' ? 'italic' : 'normal';
@@ -142,6 +144,7 @@ function renderInlineSegments(
 
     if (segment.type === 'code') {
       const code = document.createElement('code');
+      code.className = 'inkstone-inline inkstone-inline--code';
       code.textContent = segment.text;
       code.style.color = '#475569';
       code.style.fontFamily = profile === 'preview' ? 'ui-monospace, SFMono-Regular, monospace' : 'inherit';
@@ -155,6 +158,7 @@ function renderInlineSegments(
     }
 
     const link = document.createElement('span');
+    link.className = 'inkstone-inline inkstone-inline--link';
     link.textContent = segment.label;
     link.style.color = '#1d4ed8';
     link.style.textDecoration = 'underline';
@@ -166,6 +170,7 @@ function renderInlineSegments(
 
 function createVisibleListMarker(block: InkstoneMarkdownBlock): HTMLElement {
   const marker = document.createElement('span');
+  marker.className = 'inkstone-list-marker';
   const trimmedMarker = (block.marker ?? '').trim();
   marker.dataset.inkstoneRole = 'list-marker';
   marker.setAttribute('aria-hidden', 'true');
@@ -250,9 +255,11 @@ function appendEditorTaskPrefix(
 
   const checkboxSlot = createInlineSyntaxSlot('task-gutter', checkboxSyntax);
   const checkbox = document.createElement('button');
+  checkbox.className = 'inkstone-task-checkbox';
   checkbox.type = 'button';
   checkbox.dataset.inkstoneTaskToggle = 'true';
   checkbox.dataset.inkstoneLineStart = String(block.lineStart);
+  checkbox.dataset.checked = String(block.checked === true);
   checkbox.setAttribute(
     'aria-label',
     block.checked ? 'Mark task as incomplete' : 'Mark task as complete'
@@ -317,6 +324,12 @@ export class InkstoneMirrorRenderer {
   ): HTMLDivElement {
     const renderMode = options.renderMode ?? 'styled';
     const line = document.createElement('div');
+    line.classList.add(
+      'inkstone-line',
+      `inkstone-line--${block.type}`,
+      `inkstone-line--${renderMode}`,
+      `inkstone-line--profile-${this.profile}`,
+    );
     line.dataset.inkstoneRole = 'line';
     line.dataset.inkstoneBlockType = block.type;
     line.dataset.inkstoneLineStart = String(block.lineStart);
@@ -389,9 +402,11 @@ export class InkstoneMirrorRenderer {
       checkboxCell.style.justifyContent = 'center';
 
       const checkbox = document.createElement('button');
+      checkbox.className = 'inkstone-task-checkbox';
       checkbox.type = 'button';
       checkbox.dataset.inkstoneTaskToggle = 'true';
       checkbox.dataset.inkstoneLineStart = String(block.lineStart);
+      checkbox.dataset.checked = String(block.checked === true);
       checkbox.setAttribute(
         'aria-label',
         block.checked ? 'Mark task as incomplete' : 'Mark task as complete'
