@@ -1136,7 +1136,9 @@ body {
   overflow: hidden;
   background: var(--app-background);
   box-shadow: none;
-  transition: grid-template-columns 220ms ease;
+  transition:
+    grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    gap 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .sidebar {
@@ -1148,6 +1150,13 @@ body {
   flex-direction: column;
   border: 0;
   background: transparent;
+  visibility: visible;
+  transform: translateX(0);
+  opacity: 1;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 160ms ease,
+    visibility 0s linear 0s;
 }
 
 .sidebar-brand {
@@ -1155,8 +1164,8 @@ body {
   min-height: 76px;
   flex: 0 0 76px;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 0;
   padding: 0 16px;
 }
 
@@ -1236,39 +1245,19 @@ body {
 
 @media (min-width: 801px) {
   .notes-shell[data-sidebar-collapsed="true"] {
-    grid-template-columns: 96px minmax(0, 1fr);
-  }
-
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar-brand {
-    gap: 0;
-    padding-right: 8px;
-    padding-left: 8px;
-  }
-
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar-brand .brand {
+    grid-template-columns: 0 minmax(0, 1fr);
     gap: 0;
   }
 
-  .notes-shell[data-sidebar-collapsed="true"] .brand__name,
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar .search-field,
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar .note-tabs,
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar-list-heading,
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar .list-status,
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar .notes-list,
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar__footer {
-    display: none;
-  }
-
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar-create {
-    width: 48px;
-    margin-right: auto;
-    margin-left: auto;
-    padding: 0;
-    border-radius: 13px;
-  }
-
-  .notes-shell[data-sidebar-collapsed="true"] .sidebar-create > span:last-child {
-    display: none;
+  .notes-shell[data-sidebar-collapsed="true"] .sidebar {
+    visibility: hidden;
+    transform: translateX(-18px);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 160ms ease,
+      visibility 0s linear 220ms;
   }
 }
 

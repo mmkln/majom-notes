@@ -88,6 +88,10 @@ describe('NotesWorkspace Markdown toolbar', () => {
     const shell = root.querySelector<HTMLElement>('.notes-shell');
     const toggle = root.querySelector<HTMLButtonElement>('[data-sidebar-toggle]');
 
+    expect(root.querySelector('.sidebar-brand [data-sidebar-toggle]')).toBeNull();
+    expect(
+      root.querySelector('.editor-toolbar__meta [data-sidebar-toggle]'),
+    ).not.toBeNull();
     expect(shell?.dataset.sidebarCollapsed).toBe('false');
     expect(toggle?.getAttribute('aria-expanded')).toBe('true');
     toggle?.click();
