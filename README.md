@@ -18,6 +18,16 @@ backend completes OIDC, stores the authenticated user in an HttpOnly session
 cookie, and exposes the session state through `/auth/sso/session/`. Mutating API
 requests include the CSRF token returned by that endpoint.
 
+## Markdown editor
+
+The note body uses the local `@majom/inkstone` package. Markdown remains the
+source of truth while a synchronized mirror renders inactive blocks. The editor
+provides a formatting toolbar, keyboard shortcuts, interactive task markers,
+and local recovery drafts that are cleared after a successful API save.
+
+Supported formatting includes headings, bold, emphasis, inline and fenced code,
+links, blockquotes, bullet and ordered lists, and task lists.
+
 ## Production
 
 The production frontend is configured for `https://notes.gomajom.com/` and the

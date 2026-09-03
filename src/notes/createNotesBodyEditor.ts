@@ -8,6 +8,13 @@ import {
 const engine = createInkstoneMarkdownEngine({ normalizeLineEndings: true });
 const renderer = createInkstoneMirrorRenderer({ profile: 'editor' });
 
+export function createNotesSnippet(value: string): string {
+  return engine.createSnippet(value, {
+    maxLength: 135,
+    maxItems: 3,
+  }).text;
+}
+
 export function createNotesBodyEditor(options: {
   value: string;
   onChange: (value: string) => void;

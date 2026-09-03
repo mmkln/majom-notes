@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { DraftRepository, StoredDraft } from './DraftStorage.ts';
 import type { NoteListOptions, NotesApiClient } from './NotesApiClient.ts';
 import { NotesStore } from './NotesStore.ts';
 import type { Note, NoteSummary, PaginatedResponse } from './types.ts';
@@ -49,6 +50,22 @@ function createApi(overrides: Partial<NotesApiClient> = {}): NotesApiClient {
     unarchive: vi.fn(async () => note({ status: 'active' })),
     ...overrides,
   } as unknown as NotesApiClient;
+}
+
+class MemoryDraftStorage implements DraftRepository {
+  private readonly drafts = new Map<string, StoredDraft>();
+
+  public load(noteId: string): StoredDraft | null {
+    return this.drafts.get(noteId) ?? null;
+  }
+
+  public save(draft: StoredDraft): void {
+    this.drafts.set(draft.noteId, { ...draft });
+  }
+
+  public remove(noteId: string): void {
+    this.drafts.delete(noteId);
+  }
 }
 
 describe('NotesStore', () => {
@@ -121,6 +138,59 @@ describe('NotesStore', () => {
     expect(patch.mock.calls[1][1]).toMatchObject({ body: 'Версія 2' });
     expect(store.snapshot.currentNote?.body).toBe('Версія 2');
     expect(store.snapshot.saveState).toBe('saved');
+  });
+
+  it('preserves leading, trailing, and Markdown-significant whitespace', async () => {
+    const patch = vi.fn(async (_id: string, payload: Partial<Note>) =>
+      note(payload),
+    );
+    const store = new NotesStore(createApi({ patch } as Partial<NotesApiClient>));
+    await store.initialize();
+    const body = '\n  # Heading\n\nTrailing spaces stay.  \n';
+
+    store.updateDraft({ body });
+    await store.flush();
+
+    expect(patch).toHaveBeenCalledWith(
+      '2db3cd30-5d10-4f74-8fe2-6680fa8605a2',
+      expect.objectContaining({ body }),
+    );
+    expect(store.snapshot.currentNote?.body).toBe(body);
+  });
+
+  it('restores and clears a recoverable local draft after saving it', async () => {
+    const draftStorage = new MemoryDraftStorage();
+    draftStorage.save({
+      noteId: '2db3cd30-5d10-4f74-8fe2-6680fa8605a2',
+      title: 'Локальна назва',
+      body: 'Незбережений Markdown',
+      baseUpdatedAt: '2026-09-03T09:00:00Z',
+      editedAt: '2026-09-03T09:01:00Z',
+    });
+    const patch = vi.fn(async (_id: string, payload: Partial<Note>) =>
+      note(payload),
+    );
+    const store = new NotesStore(
+      createApi({ patch } as Partial<NotesApiClient>),
+      draftStorage,
+    );
+
+    await store.initialize();
+
+    expect(store.snapshot.draftTitle).toBe('Локальна назва');
+    expect(store.snapshot.draftBody).toBe('Незбережений Markdown');
+    expect(store.snapshot.saveState).toBe('queued');
+
+    await store.flush();
+
+    expect(patch).toHaveBeenCalledWith(
+      '2db3cd30-5d10-4f74-8fe2-6680fa8605a2',
+      expect.objectContaining({
+        title: 'Локальна назва',
+        body: 'Незбережений Markdown',
+      }),
+    );
+    expect(draftStorage.load('2db3cd30-5d10-4f74-8fe2-6680fa8605a2')).toBeNull();
   });
 
   it('moves an archived note out of the active list', async () => {

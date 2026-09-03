@@ -1,4 +1,5 @@
 import type { NotesApiClient } from './NotesApiClient.ts';
+import { DraftStorage, type DraftRepository, type StoredDraft } from './DraftStorage.ts';
 import type {
   Note,
   NoteListMode,
@@ -53,7 +54,10 @@ export class NotesStore {
   private editVersion = 0;
   private savedVersion = 0;
 
-  constructor(private readonly api: NotesApiClient) {}
+  constructor(
+    private readonly api: NotesApiClient,
+    private readonly draftStorage: DraftRepository = new DraftStorage(),
+  ) {}
 
   public get snapshot(): Readonly<NotesState> {
     return this.state;
@@ -102,22 +106,34 @@ export class NotesStore {
       const shouldLoadDraft =
         currentNote?.id !== this.state.currentNote?.id ||
         this.editVersion === this.savedVersion;
+      const recoveredDraft =
+        shouldLoadDraft && currentNote
+          ? this.getRecoverableDraft(currentNote)
+          : null;
       this.state = {
         ...this.state,
         activeNotes,
         archivedNotes,
         summary,
         currentNote,
-        draftTitle: shouldLoadDraft
-          ? currentNote?.title ?? ''
-          : this.state.draftTitle,
-        draftBody: shouldLoadDraft
-          ? currentNote?.body ?? ''
-          : this.state.draftBody,
+        draftTitle: recoveredDraft
+          ? recoveredDraft.title
+          : shouldLoadDraft
+            ? currentNote?.title ?? ''
+            : this.state.draftTitle,
+        draftBody: recoveredDraft
+          ? recoveredDraft.body
+          : shouldLoadDraft
+            ? currentNote?.body ?? ''
+            : this.state.draftBody,
+        saveState: recoveredDraft ? 'queued' : this.state.saveState,
         loading: false,
       };
-      if (shouldLoadDraft) this.resetDraftVersion();
+      if (shouldLoadDraft) {
+        this.resetDraftVersion(recoveredDraft !== null);
+      }
       this.emit();
+      if (recoveredDraft) this.scheduleSave();
     } catch (error) {
       if (version !== this.loadVersion) return;
       console.error('Failed to load notes.', error);
@@ -187,19 +203,25 @@ export class NotesStore {
   }
 
   public updateDraft(patch: { title?: string; body?: string }): void {
-    if (!this.state.currentNote) return;
+    const note = this.state.currentNote;
+    if (!note) return;
+    const draftTitle = patch.title ?? this.state.draftTitle;
+    const draftBody = patch.body ?? this.state.draftBody;
     this.editVersion += 1;
     this.patch({
-      draftTitle: patch.title ?? this.state.draftTitle,
-      draftBody: patch.body ?? this.state.draftBody,
+      draftTitle,
+      draftBody,
       saveState: 'queued',
       mutationError: null,
     });
-    if (this.saveTimer) clearTimeout(this.saveTimer);
-    this.saveTimer = setTimeout(() => {
-      this.saveTimer = null;
-      void this.flush();
-    }, 450);
+    this.draftStorage.save({
+      noteId: note.id,
+      title: draftTitle,
+      body: draftBody,
+      baseUpdatedAt: note.updated_at,
+      editedAt: new Date().toISOString(),
+    });
+    this.scheduleSave();
   }
 
   public async flush(): Promise<boolean> {
@@ -278,6 +300,7 @@ export class NotesStore {
         },
         actionPending: false,
       };
+      this.draftStorage.remove(note.id);
       const fallback =
         (this.state.listMode === 'active' ? activeNotes[0] : archivedNotes[0]) ??
         activeNotes[0] ??
@@ -309,15 +332,26 @@ export class NotesStore {
     while (this.state.currentNote && this.savedVersion < this.editVersion) {
       const noteId = this.state.currentNote.id;
       const targetVersion = this.editVersion;
-      const body = this.state.draftBody.trim();
+      const body = this.state.draftBody;
       const title = this.state.draftTitle.trim() ||
-        (body ? '' : 'Нотатка без назви');
+        (body.trim() ? '' : 'Нотатка без назви');
       this.patch({ saveState: 'saving', mutationError: null });
       try {
         const updated = await this.api.patch(noteId, { title, body });
         if (this.state.currentNote?.id !== noteId) return true;
         this.savedVersion = targetVersion;
         this.replaceNote(updated);
+        if (this.savedVersion === this.editVersion) {
+          this.draftStorage.remove(noteId);
+        } else {
+          this.draftStorage.save({
+            noteId,
+            title: this.state.draftTitle,
+            body: this.state.draftBody,
+            baseUpdatedAt: updated.updated_at,
+            editedAt: new Date().toISOString(),
+          });
+        }
       } catch (error) {
         console.error('Failed to save note.', error);
         this.patch({
@@ -370,21 +404,41 @@ export class NotesStore {
   }
 
   private setCurrentNote(note: Note | null): void {
+    const recoveredDraft = note ? this.getRecoverableDraft(note) : null;
     this.state = {
       ...this.state,
       currentNote: note,
-      draftTitle: note?.title ?? '',
-      draftBody: note?.body ?? '',
-      saveState: 'idle',
+      draftTitle: recoveredDraft?.title ?? note?.title ?? '',
+      draftBody: recoveredDraft?.body ?? note?.body ?? '',
+      saveState: recoveredDraft ? 'queued' : 'idle',
       mutationError: null,
     };
-    this.resetDraftVersion();
+    this.resetDraftVersion(recoveredDraft !== null);
     this.emit();
+    if (recoveredDraft) this.scheduleSave();
   }
 
-  private resetDraftVersion(): void {
-    this.editVersion = 0;
+  private resetDraftVersion(hasUnsavedDraft = false): void {
+    this.editVersion = hasUnsavedDraft ? 1 : 0;
     this.savedVersion = 0;
+  }
+
+  private getRecoverableDraft(note: Note): StoredDraft | null {
+    const draft = this.draftStorage.load(note.id);
+    if (!draft || draft.baseUpdatedAt !== note.updated_at) return null;
+    if (draft.title === note.title && draft.body === note.body) {
+      this.draftStorage.remove(note.id);
+      return null;
+    }
+    return draft;
+  }
+
+  private scheduleSave(delay = 450): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      void this.flush();
+    }, delay);
   }
 
   private async reloadSummary(): Promise<void> {

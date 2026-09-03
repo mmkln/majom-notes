@@ -15,8 +15,11 @@ import {
   outdentListLine,
   toggleTaskMarkerAtLine,
   toggleLinePrefix,
+  wrapSelectionAsLink,
+  wrapSelectionInCodeFence,
   wrapSelectionWithToken,
 } from './markdownCommands.ts';
+import type { InkstoneCommand } from './InkstoneCommand.ts';
 
 export type InkstoneEditorOptions = {
   value: string;
@@ -44,6 +47,7 @@ export type InkstoneEditorHandle = {
   getValue: () => string;
   getInputElement: () => HTMLTextAreaElement;
   getDocument: () => InkstoneMarkdownDocument;
+  executeCommand: (command: InkstoneCommand) => void;
 };
 
 class InkstoneEditor implements InkstoneEditorHandle {
@@ -206,6 +210,67 @@ class InkstoneEditor implements InkstoneEditorHandle {
     return this.documentSnapshot;
   }
 
+  public executeCommand(command: InkstoneCommand): void {
+    switch (command.type) {
+      case 'bold':
+        this.applyCommand((value, start, end) =>
+          wrapSelectionWithToken(value, start, end, '**')
+        );
+        break;
+      case 'italic':
+        this.applyCommand((value, start, end) =>
+          wrapSelectionWithToken(value, start, end, '_')
+        );
+        break;
+      case 'inline-code':
+        this.applyCommand((value, start, end) =>
+          wrapSelectionWithToken(value, start, end, '`')
+        );
+        break;
+      case 'heading':
+        this.applyCommand((value, start, end) =>
+          toggleLinePrefix(value, start, end, `${'#'.repeat(command.level)} `)
+        );
+        break;
+      case 'bullet-list':
+        this.applyCommand((value, start, end) =>
+          toggleLinePrefix(value, start, end, '- ')
+        );
+        break;
+      case 'ordered-list':
+        this.applyCommand((value, start, end) =>
+          toggleLinePrefix(value, start, end, '1. ')
+        );
+        break;
+      case 'task-list':
+        this.applyCommand((value, start, end) =>
+          toggleLinePrefix(value, start, end, '- [ ] ')
+        );
+        break;
+      case 'blockquote':
+        this.applyCommand((value, start, end) =>
+          toggleLinePrefix(value, start, end, '> ')
+        );
+        break;
+      case 'code-block':
+        this.applyCommand((value, start, end) =>
+          wrapSelectionInCodeFence(
+            value,
+            start,
+            end,
+            command.language?.trim() ?? ''
+          )
+        );
+        break;
+      case 'link':
+        this.applyCommand((value, start, end) =>
+          wrapSelectionAsLink(value, start, end, command.href?.trim() || 'https://')
+        );
+        break;
+    }
+    this.input.focus();
+  }
+
   private handleKeydown(event: KeyboardEvent): void {
     if (this.options.enableMarkdownShortcuts === false) {
       return;
@@ -237,25 +302,28 @@ class InkstoneEditor implements InkstoneEditorHandle {
     const key = event.key.toLowerCase();
     if (key === 'b') {
       event.preventDefault();
-      this.applyCommand((value, start, end) =>
-        wrapSelectionWithToken(value, start, end, '**')
-      );
+      this.executeCommand({ type: 'bold' });
       return;
     }
 
     if (key === 'i') {
       event.preventDefault();
-      this.applyCommand((value, start, end) =>
-        wrapSelectionWithToken(value, start, end, '_')
-      );
+      this.executeCommand({ type: 'italic' });
       return;
     }
 
-    if (event.shiftKey && key === '8') {
+    if (key === 'k') {
       event.preventDefault();
-      this.applyCommand((value, start, end) =>
-        toggleLinePrefix(value, start, end, '- ')
-      );
+      this.executeCommand({ type: 'link' });
+      return;
+    }
+
+    if (
+      event.shiftKey &&
+      (event.code === 'Digit8' || event.key === '*')
+    ) {
+      event.preventDefault();
+      this.executeCommand({ type: 'bullet-list' });
       return;
     }
   }
@@ -270,10 +338,41 @@ class InkstoneEditor implements InkstoneEditorHandle {
     const start = this.input.selectionStart ?? 0;
     const end = this.input.selectionEnd ?? start;
     const result = command(this.input.value, start, end);
-
-    this.input.value = result.value;
+    this.replaceInputValue(result.value);
     this.input.setSelectionRange(result.selection.start, result.selection.end);
     this.syncDocumentFromInput();
+  }
+
+  private replaceInputValue(nextValue: string): void {
+    const currentValue = this.input.value;
+    if (currentValue === nextValue) return;
+
+    let start = 0;
+    while (
+      start < currentValue.length &&
+      start < nextValue.length &&
+      currentValue[start] === nextValue[start]
+    ) {
+      start += 1;
+    }
+
+    let currentEnd = currentValue.length;
+    let nextEnd = nextValue.length;
+    while (
+      currentEnd > start &&
+      nextEnd > start &&
+      currentValue[currentEnd - 1] === nextValue[nextEnd - 1]
+    ) {
+      currentEnd -= 1;
+      nextEnd -= 1;
+    }
+
+    this.input.setRangeText(
+      nextValue.slice(start, nextEnd),
+      start,
+      currentEnd,
+      'preserve'
+    );
   }
 
   private applyOptionalCommand(

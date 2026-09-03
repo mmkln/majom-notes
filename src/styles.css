@@ -656,10 +656,69 @@ button:disabled {
   color: #c1bbce;
 }
 
+.markdown-toolbar {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 3px;
+  margin: 22px 0 4px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 28px rgba(60, 46, 96, 0.07);
+  backdrop-filter: blur(14px);
+  scrollbar-width: none;
+}
+
+.markdown-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.markdown-toolbar button {
+  display: inline-flex;
+  width: 34px;
+  height: 32px;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.markdown-toolbar button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.markdown-toolbar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.markdown-toolbar__separator {
+  width: 1px;
+  height: 20px;
+  flex: 0 0 1px;
+  margin: 0 3px;
+  background: var(--border-subtle);
+}
+
 .body-host {
   display: flex;
   min-height: 360px;
-  margin-top: 24px;
+  margin-top: 18px;
 }
 
 .notes-body-editor-host {
@@ -996,6 +1055,12 @@ button:disabled {
 
   .title-input {
     font-size: 29px;
+  }
+
+  .markdown-toolbar {
+    top: 6px;
+    width: 100%;
+    margin-top: 18px;
   }
 
   .body-host,

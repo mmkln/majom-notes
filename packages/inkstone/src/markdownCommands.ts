@@ -1,9 +1,9 @@
-type SelectionRange = {
+export type SelectionRange = {
   start: number;
   end: number;
 };
 
-type CommandResult = {
+export type CommandResult = {
   value: string;
   selection: SelectionRange;
 };
@@ -130,6 +130,53 @@ export function wrapSelectionWithToken(
       start: range.start + token.length,
       end: range.start + token.length + selectedText.length,
     },
+  };
+}
+
+export function wrapSelectionAsLink(
+  value: string,
+  start: number,
+  end: number,
+  href = 'https://'
+): CommandResult {
+  const range = normalizeRange(start, end);
+  const selectedText = value.slice(range.start, range.end);
+  const label = selectedText || 'посилання';
+  const replacement = `[${label}](${href})`;
+  const nextValue = replaceRange(value, range, replacement);
+  const hrefStart = range.start + label.length + 3;
+
+  return {
+    value: nextValue,
+    selection: {
+      start: hrefStart,
+      end: hrefStart + href.length,
+    },
+  };
+}
+
+export function wrapSelectionInCodeFence(
+  value: string,
+  start: number,
+  end: number,
+  language = ''
+): CommandResult {
+  const range = normalizeRange(start, end);
+  const selectedText = value.slice(range.start, range.end);
+  const opening = `\`\`\`${language}\n`;
+  const closing = '\n```';
+  const replacement = `${opening}${selectedText}${closing}`;
+  const nextValue = replaceRange(value, range, replacement);
+  const contentStart = range.start + opening.length;
+
+  return {
+    value: nextValue,
+    selection: selectedText
+      ? {
+          start: contentStart,
+          end: contentStart + selectedText.length,
+        }
+      : { start: contentStart, end: contentStart },
   };
 }
 

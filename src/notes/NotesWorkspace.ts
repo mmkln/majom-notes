@@ -1,9 +1,12 @@
-import type { InkstoneEditorHandle } from '@majom/inkstone';
+import type { InkstoneCommand, InkstoneEditorHandle } from '@majom/inkstone';
 
 import type { AuthUser } from '../auth/types.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.ts';
 import { createIcon, setButtonIcon } from '../ui/icons.ts';
-import { createNotesBodyEditor } from './createNotesBodyEditor.ts';
+import {
+  createNotesBodyEditor,
+  createNotesSnippet,
+} from './createNotesBodyEditor.ts';
 import type { NotesStore } from './NotesStore.ts';
 import type { Note, NotesState } from './types.ts';
 
@@ -15,17 +18,6 @@ type NotesWorkspaceOptions = {
 
 function noteTitle(note: Note | null, draftTitle?: string): string {
   return draftTitle?.trim() || note?.title.trim() || 'Нотатка без назви';
-}
-
-function noteSnippet(value: string): string {
-  return value
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*|__|~~|`/g, '')
-    .replace(/^\s*[-*+]\s+/gm, '')
-    .replace(/^\s*\d+\.\s+/gm, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 135);
 }
 
 function formatUpdatedAt(value: string): string {
@@ -63,6 +55,7 @@ export class NotesWorkspace {
   private editorContent!: HTMLElement;
   private editorEmpty!: HTMLElement;
   private titleInput!: HTMLInputElement;
+  private markdownToolbar!: HTMLElement;
   private bodyHost!: HTMLElement;
   private updatedLabel!: HTMLElement;
   private saveLabel!: HTMLElement;
@@ -165,6 +158,20 @@ export class NotesWorkspace {
 
               <div class="editor-scroll">
                 <input class="title-input" type="text" placeholder="Назва нотатки" maxlength="200" />
+                <div class="markdown-toolbar" data-markdown-toolbar role="toolbar" aria-label="Форматування Markdown">
+                  <button type="button" data-md-command="heading" data-level="2" aria-label="Заголовок другого рівня" title="Заголовок другого рівня">H2</button>
+                  <button type="button" data-md-command="bold" aria-label="Жирний текст" title="Жирний текст (Ctrl+B)"><strong>B</strong></button>
+                  <button type="button" data-md-command="italic" aria-label="Курсив" title="Курсив (Ctrl+I)"><em>I</em></button>
+                  <button type="button" data-md-command="inline-code" aria-label="Код у рядку" title="Код у рядку">&lt;/&gt;</button>
+                  <span class="markdown-toolbar__separator" aria-hidden="true"></span>
+                  <button type="button" data-md-command="bullet-list" aria-label="Маркований список" title="Маркований список">•</button>
+                  <button type="button" data-md-command="ordered-list" aria-label="Нумерований список" title="Нумерований список">1.</button>
+                  <button type="button" data-md-command="task-list" aria-label="Список завдань" title="Список завдань">☑</button>
+                  <button type="button" data-md-command="blockquote" aria-label="Цитата" title="Цитата">❯</button>
+                  <span class="markdown-toolbar__separator" aria-hidden="true"></span>
+                  <button type="button" data-md-command="link" aria-label="Посилання" title="Посилання (Ctrl+K)">↗</button>
+                  <button type="button" data-md-command="code-block" aria-label="Блок коду" title="Блок коду">{ }</button>
+                </div>
                 <div class="body-host"></div>
               </div>
             </div>
@@ -213,6 +220,7 @@ export class NotesWorkspace {
     this.editorContent = this.required('.editor-content');
     this.editorEmpty = this.required('.editor-empty');
     this.titleInput = this.required('.title-input');
+    this.markdownToolbar = this.required('[data-markdown-toolbar]');
     this.bodyHost = this.required('.body-host');
     this.updatedLabel = this.required('.updated-label');
     this.saveLabel = this.required('.save-label');
@@ -262,6 +270,17 @@ export class NotesWorkspace {
     });
     this.titleInput.addEventListener('input', () => {
       this.store.updateDraft({ title: this.titleInput.value });
+    });
+    this.markdownToolbar.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+    });
+    this.markdownToolbar.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+        '[data-md-command]',
+      );
+      if (!button || !this.bodyEditor) return;
+      const command = this.getToolbarCommand(button);
+      if (command) this.bodyEditor.executeCommand(command);
     });
     this.pinButton.addEventListener('click', () => void this.store.togglePin());
     this.archiveButton.addEventListener('click', () =>
@@ -345,7 +364,8 @@ export class NotesWorkspace {
       );
       const snippet = document.createElement('span');
       snippet.textContent =
-        noteSnippet(selected ? state.draftBody : note.body) || 'Порожня нотатка';
+        createNotesSnippet(selected ? state.draftBody : note.body) ||
+        'Порожня нотатка';
       copy.append(title, snippet);
       row.appendChild(copy);
 
@@ -478,6 +498,30 @@ export class NotesWorkspace {
     this.bodyEditor = null;
     this.renderedNoteId = null;
     this.bodyHost?.replaceChildren();
+  }
+
+  private getToolbarCommand(button: HTMLButtonElement): InkstoneCommand | null {
+    const type = button.dataset.mdCommand;
+    switch (type) {
+      case 'heading': {
+        const level = Number(button.dataset.level);
+        return level === 1 || level === 2 || level === 3
+          ? { type, level }
+          : null;
+      }
+      case 'bold':
+      case 'italic':
+      case 'inline-code':
+      case 'bullet-list':
+      case 'ordered-list':
+      case 'task-list':
+      case 'blockquote':
+      case 'code-block':
+      case 'link':
+        return { type };
+      default:
+        return null;
+    }
   }
 
   private syncMobileView(): void {

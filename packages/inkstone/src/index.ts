@@ -28,4 +28,7 @@ export {
   toggleTaskMarkerAtLine,
   toggleLinePrefix,
   wrapSelectionWithToken,
+  wrapSelectionAsLink,
+  wrapSelectionInCodeFence,
 } from './markdownCommands.ts';
+export type { InkstoneCommand } from './InkstoneCommand.ts';
