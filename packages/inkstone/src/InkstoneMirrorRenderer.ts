@@ -18,6 +18,13 @@ function applyLineStyles(
   renderMode: InkstoneMirrorRenderMode,
   profile: InkstoneMirrorRendererProfile
 ): void {
+  if (profile === 'editor') {
+    if (block.type === 'thematic_break') {
+      line.style.position = 'relative';
+    }
+    return;
+  }
+
   if (renderMode === 'editing') {
     line.style.color = '#475569';
     line.style.background = 'rgba(248, 250, 252, 0.78)';
@@ -38,42 +45,36 @@ function applyLineStyles(
               : '#6b7280';
     line.style.textDecoration = 'none';
 
-    if (profile === 'preview') {
-      const headingScale =
-        headingLevel === 1
-          ? '1.2em'
-          : headingLevel === 2
-            ? '1.12em'
-            : headingLevel === 3
-              ? '1.05em'
-              : headingLevel === 4
-                ? '0.98em'
-                : '0.93em';
-      line.style.fontSize = headingScale;
-      line.style.fontWeight =
-        headingLevel === 1
-          ? '700'
-          : headingLevel === 2
-            ? '650'
-            : headingLevel <= 4
-              ? '600'
-              : '500';
-      line.style.letterSpacing =
-        headingLevel === 1 ? '-0.025em' : headingLevel === 2 ? '-0.02em' : '-0.01em';
-    }
+    const headingScale =
+      headingLevel === 1
+        ? '1.2em'
+        : headingLevel === 2
+          ? '1.12em'
+          : headingLevel === 3
+            ? '1.05em'
+            : headingLevel === 4
+              ? '0.98em'
+              : '0.93em';
+    line.style.fontSize = headingScale;
+    line.style.fontWeight =
+      headingLevel === 1
+        ? '700'
+        : headingLevel === 2
+          ? '650'
+          : headingLevel <= 4
+            ? '600'
+            : '500';
+    line.style.letterSpacing =
+      headingLevel === 1 ? '-0.025em' : headingLevel === 2 ? '-0.02em' : '-0.01em';
 
     return;
   }
 
   if (block.type === 'thematic_break') {
-    if (profile === 'preview') {
-      line.style.paddingTop = '0.4rem';
-      line.style.paddingBottom = '0.4rem';
-      line.style.display = 'flex';
-      line.style.alignItems = 'center';
-    } else {
-      line.style.position = 'relative';
-    }
+    line.style.paddingTop = '0.4rem';
+    line.style.paddingBottom = '0.4rem';
+    line.style.display = 'flex';
+    line.style.alignItems = 'center';
     return;
   }
 
@@ -131,9 +132,11 @@ function renderInlineSegments(
       const strong = document.createElement('strong');
       strong.className = 'inkstone-inline inkstone-inline--strong';
       strong.textContent = segment.text;
-      strong.style.color = '#243447';
-      strong.style.fontWeight = profile === 'preview' ? '700' : 'inherit';
-      strong.style.textDecoration = 'none';
+      if (profile === 'preview') {
+        strong.style.color = '#243447';
+        strong.style.fontWeight = '700';
+        strong.style.textDecoration = 'none';
+      }
       host.appendChild(strong);
       if (profile === 'editor') {
         appendHiddenSyntaxSpan(host, '**');
@@ -148,9 +151,11 @@ function renderInlineSegments(
       const em = document.createElement('em');
       em.className = 'inkstone-inline inkstone-inline--emphasis';
       em.textContent = segment.text;
-      em.style.color = '#526277';
-      em.style.fontStyle = profile === 'preview' ? 'italic' : 'normal';
-      em.style.textDecoration = 'none';
+      if (profile === 'preview') {
+        em.style.color = '#526277';
+        em.style.fontStyle = 'italic';
+        em.style.textDecoration = 'none';
+      }
       host.appendChild(em);
       if (profile === 'editor') {
         appendHiddenSyntaxSpan(host, segment.marker);
@@ -165,10 +170,10 @@ function renderInlineSegments(
       const code = document.createElement('code');
       code.className = 'inkstone-inline inkstone-inline--code';
       code.textContent = segment.text;
-      code.style.color = '#475569';
-      code.style.fontFamily = profile === 'preview' ? 'ui-monospace, SFMono-Regular, monospace' : 'inherit';
-      code.style.background = 'rgba(226, 232, 240, 0.82)';
       if (profile === 'preview') {
+        code.style.color = '#475569';
+        code.style.fontFamily = 'ui-monospace, SFMono-Regular, monospace';
+        code.style.background = 'rgba(226, 232, 240, 0.82)';
         code.style.padding = '0.08rem 0.35rem';
         code.style.borderRadius = '0.4rem';
       }
@@ -185,9 +190,11 @@ function renderInlineSegments(
     const link = document.createElement('span');
     link.className = 'inkstone-inline inkstone-inline--link';
     link.textContent = segment.label;
-    link.style.color = '#1d4ed8';
-    link.style.textDecoration = 'underline';
-    link.style.textDecorationColor = 'rgba(29, 78, 216, 0.28)';
+    if (profile === 'preview') {
+      link.style.color = '#1d4ed8';
+      link.style.textDecoration = 'underline';
+      link.style.textDecorationColor = 'rgba(29, 78, 216, 0.28)';
+    }
     link.dataset.inkstoneHref = segment.href;
     host.appendChild(link);
     if (profile === 'editor') {
@@ -206,7 +213,6 @@ function createVisibleListMarker(block: InkstoneMarkdownBlock): HTMLElement {
   marker.style.alignItems = 'center';
   marker.style.justifyContent = 'center';
   marker.style.opacity = '1';
-  marker.style.color = 'rgba(100, 116, 139, 0.78)';
   marker.style.minWidth = block.type === 'ordered_list_item' ? '1.6rem' : '1rem';
 
   if (block.type === 'ordered_list_item') {
@@ -375,10 +381,9 @@ export class InkstoneMirrorRenderer {
 
     if (markdownDocument.normalized.length === 0) {
       const placeholder = document.createElement('div');
+      placeholder.className = 'inkstone-placeholder';
       placeholder.dataset.inkstoneRole = 'placeholder';
       placeholder.textContent = options.placeholder ?? '';
-      placeholder.style.color = 'rgba(148, 163, 184, 0.8)';
-      placeholder.style.fontStyle = 'italic';
       host.appendChild(placeholder);
       return;
     }
@@ -434,11 +439,11 @@ export class InkstoneMirrorRenderer {
 
     if (block.type === 'thematic_break') {
       const divider = document.createElement('div');
+      divider.className = 'inkstone-divider';
       divider.dataset.inkstoneRole = 'divider';
       divider.setAttribute('aria-hidden', 'true');
       divider.style.height = '1px';
       divider.style.width = '100%';
-      divider.style.backgroundColor = 'rgba(203, 213, 225, 0.6)';
       if (this.profile === 'editor') {
         appendHiddenSyntaxSpan(line, block.rawText);
         divider.style.position = 'absolute';

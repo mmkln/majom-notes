@@ -119,7 +119,7 @@ class InkstoneEditor implements InkstoneEditorHandle {
     this.input.style.background = 'transparent';
     this.input.style.color = 'transparent';
     this.input.style.webkitTextFillColor = 'transparent';
-    this.input.style.caretColor = '#0f172a';
+    this.input.style.caretColor = 'var(--editor-accent, #7352dc)';
     this.input.style.zIndex = '1';
     this.input.style.whiteSpace = 'pre-wrap';
     this.input.style.wordBreak = 'break-word';

@@ -26,6 +26,30 @@ describe('InkstoneMirrorRenderer', () => {
     expect(line?.querySelector<HTMLElement>('.inkstone-inline--emphasis')?.textContent).toBe(
       'italic',
     );
+    expect(line?.style.color).toBe('');
+    expect(
+      line?.querySelector<HTMLElement>('.inkstone-inline--strong')?.style.color,
+    ).toBe('');
+    expect(
+      line?.querySelector<HTMLElement>('.inkstone-inline--code')?.style.background,
+    ).toBe('');
+    expect(
+      line?.querySelector<HTMLElement>('.inkstone-inline--link')?.style.color,
+    ).toBe('');
+  });
+
+  it('exposes an unstyled placeholder hook for the host theme', () => {
+    const host = document.createElement('div');
+    createInkstoneMirrorRenderer({ profile: 'editor' }).render(
+      host,
+      engine.parse(''),
+      { placeholder: 'Write a note' },
+    );
+    const placeholder = host.querySelector<HTMLElement>('.inkstone-placeholder');
+
+    expect(placeholder?.textContent).toBe('Write a note');
+    expect(placeholder?.style.color).toBe('');
+    expect(placeholder?.style.fontStyle).toBe('');
   });
 
   it('preserves heading and blockquote prefixes in the editor layout footprint', () => {

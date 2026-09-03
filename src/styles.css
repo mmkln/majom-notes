@@ -1116,6 +1116,11 @@ button:disabled {
   --shadow-control: 0 5px 18px rgba(46, 40, 90, 0.06);
   --shadow-panel: 0 12px 42px rgba(46, 40, 90, 0.07);
   --sidebar-width: 430px;
+  --editor-text: #1d1d1f;
+  --editor-secondary: #6e6e73;
+  --editor-placeholder: #8e8e93;
+  --editor-accent: #7352dc;
+  --editor-code-background: rgba(118, 118, 128, 0.12);
 }
 
 body {
@@ -1491,11 +1496,10 @@ body {
   box-shadow: var(--shadow-control);
 }
 
-.note-stage .title-input {
-  color: var(--text-primary);
-  font-size: clamp(34px, 3vw, 42px);
-  font-weight: 760;
-  line-height: 1.15;
+.note-stage .title-input,
+.note-stage .body-host {
+  width: min(100%, 760px);
+  justify-self: center;
 }
 
 .note-stage .body-host {
@@ -1511,18 +1515,52 @@ body {
 }
 
 .note-stage .notes-body-editor-input {
-  color: var(--text-primary);
-  font-size: 18px;
-  line-height: 1.85;
+  color: var(--editor-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  font-kerning: normal;
+  line-height: 1.62;
+  letter-spacing: -0.006em;
+}
+
+.note-stage .title-input {
+  color: var(--editor-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+    sans-serif;
+  font-size: clamp(32px, 3vw, 40px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.inkstone-line--profile-editor {
+  color: var(--editor-text);
+}
+
+.inkstone-line--heading {
+  color: var(--editor-text);
+  -webkit-text-stroke: 0.2px currentColor;
+}
+
+.inkstone-line--blockquote {
+  color: var(--editor-secondary);
+  box-shadow: inset 2px 0 0 rgba(118, 118, 128, 0.22);
+}
+
+.inkstone-line--code_fence {
+  border-radius: 8px;
+  background: rgba(118, 118, 128, 0.08);
 }
 
 .inkstone-line--editing {
   border-radius: 5px;
-  background: rgba(115, 82, 220, 0.035) !important;
+  background: rgba(0, 0, 0, 0.018);
 }
 
 .inkstone-list-marker {
-  color: var(--accent) !important;
+  color: var(--editor-accent);
 }
 
 .note-stage [data-inkstone-role="list-gutter"] {
@@ -1530,12 +1568,41 @@ body {
 }
 
 .inkstone-inline--strong {
-  color: var(--text-primary) !important;
+  color: inherit;
+  font-weight: inherit;
+  -webkit-text-stroke: 0.2px currentColor;
+}
+
+.inkstone-inline--emphasis {
+  color: var(--editor-secondary);
+  font-style: normal;
+}
+
+.inkstone-inline--code {
+  border-radius: 4px;
+  background: var(--editor-code-background);
+  color: var(--editor-text);
+  font-family: inherit;
 }
 
 .inkstone-inline--link {
-  color: var(--accent) !important;
-  text-decoration-color: rgba(115, 82, 220, 0.32) !important;
+  color: var(--editor-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(115, 82, 220, 0.32);
+  text-underline-offset: 0.16em;
+}
+
+.inkstone-divider {
+  background: rgba(118, 118, 128, 0.24);
+}
+
+.inkstone-placeholder {
+  color: var(--editor-placeholder);
+  font-style: normal;
+}
+
+.notes-body-editor-input::selection {
+  background: rgba(115, 82, 220, 0.18);
 }
 
 .inkstone-task-checkbox {
@@ -1552,6 +1619,10 @@ body {
   }
 
   .note-stage .editor-scroll {
+    padding: 0;
+  }
+
+  .note-stage .editor-document {
     padding-right: 38px;
     padding-left: 38px;
   }
@@ -1668,6 +1739,6 @@ body {
 
   .note-stage .notes-body-editor-input {
     font-size: 17px;
-    line-height: 1.8;
+    line-height: 1.58;
   }
 }

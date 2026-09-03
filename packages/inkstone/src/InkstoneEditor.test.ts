@@ -100,6 +100,7 @@ describe('InkstoneEditor', () => {
 
     expect(input.placeholder).toBe('Write a note');
     expect(input.style.webkitTextFillColor).toBe('transparent');
+    expect(input.style.caretColor).toBe('var(--editor-accent, #7352dc)');
     expect(
       editor.element.querySelector('[data-inkstone-role="placeholder"]')?.textContent,
     ).toBe('Write a note');
