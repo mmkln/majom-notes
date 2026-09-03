@@ -1,0 +1,26 @@
+.brand__mark,
+.auth-card__mark,
+.loading-mark {
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/majom-notes-logo.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  box-shadow: none;
+  color: transparent;
+}
+
+.brand__mark {
+  filter: drop-shadow(0 5px 9px rgba(88, 63, 170, 0.2));
+}
+
+.auth-card__mark,
+.loading-mark {
+  filter: drop-shadow(0 10px 18px rgba(88, 63, 170, 0.2));
+}
+
+.brand__mark > svg,
+.auth-card__mark > svg {
+  display: none;
+}

@@ -1,4 +1,5 @@
 import './styles.css';
+import './brand.css';
 
 import { App } from './app/App.ts';
 import { AuthClient } from './auth/AuthClient.ts';
