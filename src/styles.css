@@ -267,6 +267,7 @@ button:disabled {
 
 .account__popover {
   position: absolute;
+  z-index: 50;
   top: calc(100% + 10px);
   right: 0;
   width: min(280px, calc(100vw - 24px));
@@ -1418,9 +1419,11 @@ body {
 }
 
 .note-stage .editor-toolbar {
+  position: relative;
+  z-index: 20;
   display: flex;
-  min-height: 88px;
-  flex: 0 0 88px;
+  min-height: 68px;
+  flex: 0 0 68px;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
