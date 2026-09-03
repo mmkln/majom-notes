@@ -16,6 +16,16 @@ type NotesWorkspaceOptions = {
   onSwitchAccount: () => void;
 };
 
+const SIDEBAR_COLLAPSED_KEY = 'majom-notes:sidebar-collapsed:v1';
+
+function restoreSidebarCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function noteTitle(note: Note | null, draftTitle?: string): string {
   return draftTitle?.trim() || note?.title.trim() || 'Нотатка без назви';
 }
@@ -53,6 +63,7 @@ export class NotesWorkspace {
   private bodyEditor: InkstoneEditorHandle | null = null;
   private renderedNoteId: string | null = null;
   private mobileView: 'list' | 'editor' = 'list';
+  private sidebarCollapsed = restoreSidebarCollapsed();
   private accountMenuOpen = false;
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private lastToastMessage: string | null = null;
@@ -68,6 +79,7 @@ export class NotesWorkspace {
   private createButton!: HTMLButtonElement;
   private mobileCreateButton!: HTMLButtonElement;
   private mobileBackButton!: HTMLButtonElement;
+  private sidebarToggle!: HTMLButtonElement;
   private editorContent!: HTMLElement;
   private editorEmpty!: HTMLElement;
   private titleInput!: HTMLInputElement;
@@ -75,8 +87,6 @@ export class NotesWorkspace {
   private bodyHost!: HTMLElement;
   private updatedLabel!: HTMLElement;
   private saveLabel!: HTMLElement;
-  private noteStatus!: HTMLElement;
-  private noteStatusLabel!: HTMLElement;
   private pinButton!: HTMLButtonElement;
   private archiveButton!: HTMLButtonElement;
   private deleteButton!: HTMLButtonElement;
@@ -94,12 +104,13 @@ export class NotesWorkspace {
   public mount(): void {
     this.root.innerHTML = `
       <div class="notes-shell" data-mobile-view="list">
-        <aside class="sidebar" aria-label="Список нотаток">
+        <aside class="sidebar" id="notes-sidebar" aria-label="Список нотаток">
           <header class="sidebar-brand">
             <div class="brand" aria-label="Majom Notes">
               <span class="brand__mark" data-brand-icon></span>
               <span class="brand__name">Majom Notes</span>
             </div>
+            <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-controls="notes-sidebar"></button>
           </header>
 
           <button class="sidebar-create" type="button" data-create>
@@ -138,10 +149,6 @@ export class NotesWorkspace {
             <div class="editor-toolbar__meta">
               <button class="icon-button mobile-back" type="button" aria-label="Назад до списку"></button>
               <span class="updated-label"></span>
-              <span class="note-status-chip" data-note-status>
-                <span class="note-status-chip__dot"></span>
-                <span data-note-status-label>Активна нотатка</span>
-              </span>
               <span class="save-label" aria-live="polite"></span>
             </div>
 
@@ -239,6 +246,7 @@ export class NotesWorkspace {
     this.createButton = this.required('[data-create]');
     this.mobileCreateButton = this.required('[data-mobile-create]');
     this.mobileBackButton = this.required('.mobile-back');
+    this.sidebarToggle = this.required('[data-sidebar-toggle]');
     this.editorContent = this.required('.editor-content');
     this.editorEmpty = this.required('.editor-empty');
     this.titleInput = this.required('.title-input');
@@ -246,8 +254,6 @@ export class NotesWorkspace {
     this.bodyHost = this.required('.body-host');
     this.updatedLabel = this.required('.updated-label');
     this.saveLabel = this.required('.save-label');
-    this.noteStatus = this.required('[data-note-status]');
-    this.noteStatusLabel = this.required('[data-note-status-label]');
     this.pinButton = this.required('.pin-button');
     this.archiveButton = this.required('.archive-button');
     this.deleteButton = this.required('.delete-button');
@@ -265,6 +271,7 @@ export class NotesWorkspace {
     this.required('[data-empty-icon]').appendChild(createIcon('document', 24));
     setButtonIcon(this.mobileBackButton, 'back', 'Назад до списку');
     setButtonIcon(this.deleteButton, 'trash', 'Видалити нотатку');
+    this.syncSidebarState(false);
 
     const initial = this.options.user.email.trim().charAt(0).toUpperCase() || 'M';
     this.root.querySelectorAll<HTMLElement>('.account__avatar').forEach((avatar) => {
@@ -274,6 +281,10 @@ export class NotesWorkspace {
   }
 
   private bindEvents(): void {
+    this.sidebarToggle.addEventListener('click', () => {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+      this.syncSidebarState();
+    });
     this.createButton.addEventListener('click', () => void this.createNote());
     this.mobileCreateButton.addEventListener('click', () => void this.createNote());
     this.required<HTMLButtonElement>('[data-empty-create]').addEventListener(
@@ -379,11 +390,6 @@ export class NotesWorkspace {
       row.setAttribute('role', 'listitem');
       row.setAttribute('aria-current', selected ? 'true' : 'false');
 
-      const marker = document.createElement('span');
-      marker.className = 'note-row__marker';
-      marker.setAttribute('aria-hidden', 'true');
-      row.appendChild(marker);
-
       const copy = document.createElement('span');
       copy.className = 'note-row__copy';
       const title = document.createElement('strong');
@@ -427,7 +433,6 @@ export class NotesWorkspace {
     const hasNote = note !== null;
     this.editorEmpty.hidden = note !== null;
     this.editorContent.hidden = note === null;
-    this.noteStatus.hidden = !hasNote;
     this.pinButton.hidden = !hasNote;
     this.archiveButton.hidden = !hasNote;
     this.deleteButton.hidden = !hasNote;
@@ -450,11 +455,6 @@ export class NotesWorkspace {
     this.updatedLabel.textContent = `Оновлено ${formatUpdatedAt(note.updated_at)}`;
     this.saveLabel.textContent = this.saveStateLabel(state.saveState);
     this.saveLabel.dataset.state = state.saveState;
-    const archived = note.status === 'archived';
-    this.noteStatusLabel.textContent = archived
-      ? 'Архівна нотатка'
-      : 'Активна нотатка';
-    this.noteStatus.classList.toggle('note-status-chip--archived', archived);
 
     const disabled = state.actionPending;
     this.pinButton.disabled = disabled;
@@ -573,6 +573,30 @@ export class NotesWorkspace {
 
   private syncMobileView(): void {
     this.shell.dataset.mobileView = this.mobileView;
+  }
+
+  private syncSidebarState(persist = true): void {
+    this.shell.dataset.sidebarCollapsed = String(this.sidebarCollapsed);
+    this.sidebarToggle.setAttribute(
+      'aria-expanded',
+      String(!this.sidebarCollapsed),
+    );
+    setButtonIcon(
+      this.sidebarToggle,
+      this.sidebarCollapsed ? 'expand' : 'collapse',
+      this.sidebarCollapsed
+        ? 'Розгорнути бічну панель'
+        : 'Згорнути бічну панель',
+    );
+    if (!persist) return;
+    try {
+      window.localStorage.setItem(
+        SIDEBAR_COLLAPSED_KEY,
+        String(this.sidebarCollapsed),
+      );
+    } catch {
+      // The layout remains usable when browser storage is unavailable.
+    }
   }
 
   private setAccountMenuOpen(open: boolean): void {

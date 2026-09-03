@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { NotesStore } from './NotesStore.ts';
 import { NotesWorkspace } from './NotesWorkspace.ts';
 import type { Note, NotesState } from './types.ts';
+
+afterEach(() => {
+  window.localStorage.clear();
+});
 
 function note(): Note {
   return {
@@ -67,6 +71,62 @@ function createStore(updateDraft: ReturnType<typeof vi.fn>): NotesStore {
 }
 
 describe('NotesWorkspace Markdown toolbar', () => {
+  it('collapses the desktop sidebar and restores the preference', () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const workspace = new NotesWorkspace(root, createStore(vi.fn()), {
+      user: {
+        id: 'user-1',
+        email: 'user@example.test',
+        username: 'user',
+      },
+      onLogout: vi.fn(async () => undefined),
+      onSwitchAccount: vi.fn(),
+    });
+
+    workspace.mount();
+    const shell = root.querySelector<HTMLElement>('.notes-shell');
+    const toggle = root.querySelector<HTMLButtonElement>('[data-sidebar-toggle]');
+
+    expect(shell?.dataset.sidebarCollapsed).toBe('false');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    toggle?.click();
+    expect(shell?.dataset.sidebarCollapsed).toBe('true');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle?.getAttribute('aria-label')).toBe('Розгорнути бічну панель');
+    expect(
+      window.localStorage.getItem('majom-notes:sidebar-collapsed:v1'),
+    ).toBe('true');
+
+    workspace.destroy();
+    root.remove();
+
+    const restoredRoot = document.createElement('div');
+    document.body.appendChild(restoredRoot);
+    const restoredWorkspace = new NotesWorkspace(
+      restoredRoot,
+      createStore(vi.fn()),
+      {
+        user: {
+          id: 'user-1',
+          email: 'user@example.test',
+          username: 'user',
+        },
+        onLogout: vi.fn(async () => undefined),
+        onSwitchAccount: vi.fn(),
+      },
+    );
+    restoredWorkspace.mount();
+
+    expect(
+      restoredRoot.querySelector<HTMLElement>('.notes-shell')?.dataset
+        .sidebarCollapsed,
+    ).toBe('true');
+
+    restoredWorkspace.destroy();
+    restoredRoot.remove();
+  });
+
   it('renders the redesigned workspace around the existing note state', () => {
     const root = document.createElement('div');
     document.body.appendChild(root);
@@ -89,10 +149,8 @@ describe('NotesWorkspace Markdown toolbar', () => {
     expect(root.querySelector('.sidebar-create')?.textContent).toContain(
       'Нова нотатка',
     );
-    expect(root.querySelector('[data-note-status-label]')?.textContent).toBe(
-      'Активна нотатка',
-    );
-    expect(root.querySelector('.note-row__marker')).not.toBeNull();
+    expect(root.querySelector('[data-note-status]')).toBeNull();
+    expect(root.querySelector('.note-row__marker')).toBeNull();
     expect(root.querySelector('.note-row__date')).not.toBeNull();
 
     workspace.destroy();
