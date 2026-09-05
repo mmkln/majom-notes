@@ -13,10 +13,11 @@ npm run dev -- --host 127.0.0.1
 
 Open `http://127.0.0.1:5173`.
 
-Authentication uses the same Majom ID session flow as Majom Canvas. The Django
-backend completes OIDC, stores the authenticated user in an HttpOnly session
-cookie, and exposes the session state through `/auth/sso/session/`. Mutating API
-requests include the CSRF token returned by that endpoint.
+Authentication uses the same Majom ID token flow as Majom Canvas. The Django
+backend completes OIDC and returns a short-lived `#sso_code`; the frontend
+exchanges it for application access and refresh tokens. Protected API requests
+use `Authorization: Bearer <access>`, so the flow does not depend on cross-site
+cookies.
 
 ## Markdown editor
 
@@ -42,9 +43,8 @@ API at `https://mxll.pythonanywhere.com`.
    SSO_ALLOWED_FRONTEND_URLS=https://gomajom.com/,https://notes.gomajom.com/
    ```
 
-   Cross-site sessions also require secure `SameSite=None` session and CSRF
-   cookies, plus `https://notes.gomajom.com` in the CORS and CSRF trusted-origin
-   settings.
+   Include `https://notes.gomajom.com` in `CORS_ALLOWED_ORIGINS`. JWT-authenticated
+   API mutations do not depend on cross-site session cookies or CSRF.
 
 3. Push this repository to GitHub with `main` as the default branch and enable
    GitHub Pages with **GitHub Actions** as its source. The included workflow

@@ -1,76 +1,94 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthClient } from './AuthClient.ts';
+import { AuthClient } from "./AuthClient.ts";
 
-function sessionResponse(): Response {
+function tokenSessionResponse(): Response {
   return new Response(
     JSON.stringify({
-      authenticated: true,
       user: {
-        id: 'user-1',
-        email: 'user@example.test',
-        username: 'user',
+        id: "user-1",
+        email: "user@example.test",
+        username: "user",
       },
-      csrfToken: 'csrf-token',
+      access: "access-token",
+      refresh: "refresh-token",
     }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
+    { status: 200, headers: { "Content-Type": "application/json" } },
   );
 }
 
-describe('AuthClient', () => {
+describe("AuthClient", () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.restoreAllMocks();
   });
 
-  it('builds a session login URL for the Notes destination', () => {
+  it("builds a token login URL for the Notes destination", () => {
     const auth = new AuthClient(
-      'https://api.example.test',
-      'https://notes.example.test/',
+      "https://api.example.test",
+      "https://notes.example.test/",
     );
 
     const loginUrl = new URL(auth.buildLoginUrl(true));
 
-    expect(loginUrl.pathname).toBe('/auth/sso/login/');
-    expect(loginUrl.searchParams.get('flow')).toBeNull();
-    expect(loginUrl.searchParams.get('return_to')).toBe(
-      'https://notes.example.test/',
+    expect(loginUrl.pathname).toBe("/auth/sso/login/");
+    expect(loginUrl.searchParams.get("flow")).toBe("token");
+    expect(loginUrl.searchParams.get("return_to")).toBe(
+      "https://notes.example.test/",
     );
-    expect(loginUrl.searchParams.get('switch')).toBe('1');
+    expect(loginUrl.searchParams.get("switch")).toBe("1");
   });
 
-  it('restores the Django session with cookies', async () => {
-    window.localStorage.setItem('majom-notes:refresh-token:v1', 'legacy-token');
-    const fetchMock = vi.fn().mockResolvedValue(sessionResponse());
-    vi.stubGlobal('fetch', fetchMock);
+  it("exchanges the callback code and restores identity with Bearer auth", async () => {
+    window.history.replaceState(null, "", "/#sso_code=one-time-code");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(tokenSessionResponse())
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            user: {
+              id: "user-1",
+              email: "user@example.test",
+              username: "user",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
     const auth = new AuthClient(
-      'https://api.example.test',
-      'https://notes.example.test/',
+      "https://api.example.test",
+      "https://notes.example.test/",
     );
 
     await expect(auth.restore()).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.example.test/auth/sso/session/',
-      expect.objectContaining({ credentials: 'include' }),
+      "https://api.example.test/auth/sso/exchange/",
+      expect.objectContaining({ method: "POST" }),
     );
-    expect(auth.currentUser?.email).toBe('user@example.test');
+    expect(auth.currentUser?.email).toBe("user@example.test");
     expect(auth.isAuthenticated).toBe(true);
-    expect(
-      window.localStorage.getItem('majom-notes:refresh-token:v1'),
-    ).toBeNull();
+    expect(window.localStorage.getItem("majom-notes:refresh-token:v1")).toBe(
+      "refresh-token",
+    );
   });
 
-  it('treats an unauthorized session response as signed out', async () => {
+  it("treats a failed refresh as signed out", async () => {
+    window.localStorage.setItem(
+      "majom-notes:refresh-token:v1",
+      "stale-refresh",
+    );
     vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response('{}', { status: 401 })),
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("{}", { status: 401 })),
     );
     const auth = new AuthClient(
-      'https://api.example.test',
-      'https://notes.example.test/',
+      "https://api.example.test",
+      "https://notes.example.test/",
     );
 
     await expect(auth.restore()).resolves.toBe(false);
@@ -79,60 +97,79 @@ describe('AuthClient', () => {
     expect(auth.isAuthenticated).toBe(false);
   });
 
-  it('sends the session cookie and CSRF token with mutations', async () => {
+  it("sends Bearer auth with mutations", async () => {
+    window.history.replaceState(null, "", "/#sso_code=one-time-code");
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(sessionResponse())
+      .mockResolvedValueOnce(tokenSessionResponse())
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            user: {
+              id: "user-1",
+              email: "user@example.test",
+              username: "user",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ ok: true }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { "Content-Type": "application/json" },
         }),
       );
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal("fetch", fetchMock);
     const auth = new AuthClient(
-      'https://api.example.test',
-      'https://notes.example.test/',
+      "https://api.example.test",
+      "https://notes.example.test/",
     );
     await auth.restore();
 
     await expect(
-      auth.request<{ ok: boolean }>('/notes/', {
-        method: 'POST',
-        body: JSON.stringify({ title: 'Note' }),
+      auth.request<{ ok: boolean }>("/notes/", {
+        method: "POST",
+        body: JSON.stringify({ title: "Note" }),
       }),
     ).resolves.toEqual({ ok: true });
 
-    const request = fetchMock.mock.calls[1];
+    const request = fetchMock.mock.calls[2];
     const headers = new Headers(request[1]?.headers);
-    expect(request[1]?.credentials).toBe('include');
-    expect(headers.get('X-CSRFToken')).toBe('csrf-token');
-    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(headers.get("Authorization")).toBe("Bearer access-token");
+    expect(headers.get("Content-Type")).toBe("application/json");
   });
 
-  it('logs out through the session endpoint', async () => {
+  it("revokes the refresh token on logout", async () => {
+    window.history.replaceState(null, "", "/#sso_code=one-time-code");
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(sessionResponse())
-      .mockResolvedValueOnce(new Response('{}', { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
+      .mockResolvedValueOnce(tokenSessionResponse())
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            user: {
+              id: "user-1",
+              email: "user@example.test",
+              username: "user",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
     const auth = new AuthClient(
-      'https://api.example.test',
-      'https://notes.example.test/',
+      "https://api.example.test",
+      "https://notes.example.test/",
     );
     await auth.restore();
 
     await auth.logout();
 
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      'https://api.example.test/auth/sso/logout/',
-      expect.objectContaining({
-        method: 'POST',
-        credentials: 'include',
-      }),
-    );
-    const headers = new Headers(fetchMock.mock.calls[1][1]?.headers);
-    expect(headers.get('X-CSRFToken')).toBe('csrf-token');
+    const request = fetchMock.mock.calls[2];
+    expect(request[0]).toBe("https://api.example.test/auth/token/blacklist/");
+    expect(JSON.parse(request[1]?.body)).toEqual({ refresh: "refresh-token" });
     expect(auth.isAuthenticated).toBe(false);
   });
 });
